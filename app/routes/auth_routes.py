@@ -11,29 +11,57 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 async def register_user(user: UserCreate, db: mysql.connector.MySQLConnection = Depends(get_db)):
     cursor = db.cursor(dictionary=True)
 
-    # Verificar si el usuario ya existe
-    cursor.execute("SELECT id FROM users WHERE username = %s OR email = %s",
-                   (user.username, user.email))
-    if cursor.fetchone():
-        raise HTTPException(status_code=400, detail="Username or email already exists")
+    try:
+        # Verificar si el usuario ya existe
+        cursor.execute("SELECT id FROM users WHERE username = %s OR email = %s",
+                       (user.username, user.email))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Username or email already exists")
 
-    # Crear usuario
-    hashed_password = hash_password(user.password)
-    cursor.callproc("CreateUser", (user.username, user.email, user.full_name, hashed_password))
+        # Crear usuario - convertir role a string si es Enum
+        hashed_password = hash_password(user.password)
+        role_str = user.role.value if hasattr(user.role, 'value') else user.role
 
-    for result in cursor.stored_results():
-        user_id = result.fetchone()["user_id"]
+        cursor.callproc("CreateUser", (
+            user.username,
+            user.email,
+            user.full_name,
+            hashed_password,
+            role_str
+        ))
 
-    db.commit()
+        # Obtener el user_id del resultado del stored procedure
+        user_id = None
+        for result in cursor.stored_results():
+            user_result = result.fetchone()
+            user_id = user_result["user_id"] if user_result else None
 
-    # Obtener usuario creado
-    cursor.callproc("GetUserById", (user_id,))
-    for result in cursor.stored_results():
-        user_data = result.fetchone()
+        if not user_id:
+            raise HTTPException(status_code=500, detail="Failed to create user")
 
-    cursor.close()
-    return UserResponse(**user_data)
+        db.commit()
 
+        # Obtener usuario creado
+        cursor.callproc("GetUserById", (user_id,))
+        user_data = None
+        for result in cursor.stored_results():
+            user_data = result.fetchone()
+
+        if not user_data:
+            raise HTTPException(status_code=500, detail="Failed to retrieve created user")
+
+        cursor.close()
+        return UserResponse(**user_data)
+
+    except mysql.connector.Error as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
 
 @router.post("/login")
 async def login_user(login_data: UserLogin, db: mysql.connector.MySQLConnection = Depends(get_db)):
