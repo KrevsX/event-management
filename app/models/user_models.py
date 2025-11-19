@@ -1,22 +1,24 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
+from enum import Enum
 
+class UserRole(str, Enum):
+    ORGANIZER = "organizer"
+    PARTICIPANT = "participant"
 
 class UserBase(BaseModel):
     username: str
-    email: EmailStr
+    email: str
     full_name: str
-
+    role: UserRole = UserRole.PARTICIPANT
 
 class UserCreate(UserBase):
     password: str
 
-
 class UserLogin(BaseModel):
     username: str
     password: str
-
 
 class UserResponse(UserBase):
     id: int
@@ -25,9 +27,9 @@ class UserResponse(UserBase):
     class Config:
         from_attributes = True
 
-
 class SocialAuth(BaseModel):
     provider: str
     provider_id: str
-    email: EmailStr
+    email: str
     full_name: str
+    role: UserRole = UserRole.PARTICIPANT

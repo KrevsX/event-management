@@ -69,9 +69,20 @@ async def social_auth(social_data: SocialAuth, db: mysql.connector.MySQLConnecti
         if existing_user:
             user_id = existing_user["id"]
         else:
-            # Crear nuevo usuario
+            # Crear nuevo usuario con rol
             username = social_data.email.split('@')[0]
-            cursor.callproc("CreateUser", (username, social_data.email, social_data.full_name, ""))
+            # Verificar si el username ya existe
+            base_username = username
+            counter = 1
+            while True:
+                cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+                if not cursor.fetchone():
+                    break
+                username = f"{base_username}{counter}"
+                counter += 1
+
+            cursor.callproc("CreateUser", (
+            username, social_data.email, social_data.full_name, "oauth_password", social_data.role.value))
             for result in cursor.stored_results():
                 user_id = result.fetchone()["user_id"]
 

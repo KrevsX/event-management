@@ -9,7 +9,7 @@ def init_database():
         connection = mysql.connector.connect(
             host="localhost",
             user="root",
-            password=""  # Tu password está vacío según tu código
+            password=""
         )
 
         cursor = connection.cursor()
@@ -27,6 +27,7 @@ def init_database():
             email VARCHAR(100) UNIQUE NOT NULL,
             full_name VARCHAR(100) NOT NULL,
             password_hash VARCHAR(255) NOT NULL,
+            role ENUM('organizer', 'participant') DEFAULT 'participant',  
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             is_active BOOLEAN DEFAULT TRUE
         );
@@ -100,11 +101,12 @@ def init_database():
                 IN p_username VARCHAR(50),
                 IN p_email VARCHAR(100),
                 IN p_full_name VARCHAR(100),
-                IN p_password_hash VARCHAR(255)
+                IN p_password_hash VARCHAR(255),
+                IN p_role VARCHAR(20)
             )
             BEGIN
-                INSERT INTO users (username, email, full_name, password_hash)
-                VALUES (p_username, p_email, p_full_name, p_password_hash);
+                INSERT INTO users (username, email, full_name, password_hash, role)
+                VALUES (p_username, p_email, p_full_name, p_password_hash, p_role);
                 SELECT LAST_INSERT_ID() as user_id;
             END
             """,
@@ -113,7 +115,7 @@ def init_database():
             """
             CREATE PROCEDURE IF NOT EXISTS GetUserByUsername(IN p_username VARCHAR(50))
             BEGIN
-                SELECT id, username, email, full_name, password_hash, created_at 
+                SELECT id, username, email, full_name, password_hash, role, created_at 
                 FROM users 
                 WHERE username = p_username AND is_active = TRUE;
             END
@@ -123,7 +125,7 @@ def init_database():
             """
             CREATE PROCEDURE IF NOT EXISTS GetUserById(IN p_user_id INT)
             BEGIN
-                SELECT id, username, email, full_name, created_at 
+                SELECT id, username, email, full_name, role, created_at 
                 FROM users 
                 WHERE id = p_user_id AND is_active = TRUE;
             END

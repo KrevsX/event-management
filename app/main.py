@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routes import auth_routes, event_routes, social_routes, stats_routes
+from app.routes import auth_routes, event_routes, social_routes, stats_routes, oauth_routes  # Agregar oauth_routes
 from app.database.connection import DatabaseConnection
 
 app = FastAPI(
@@ -13,6 +13,7 @@ app.include_router(auth_routes.router)
 app.include_router(event_routes.router)
 app.include_router(social_routes.router)
 app.include_router(stats_routes.router)
+app.include_router(oauth_routes.router)
 
 @app.get("/")
 async def root():
@@ -20,7 +21,6 @@ async def root():
 
 @app.on_event("startup")
 async def startup_event():
-    # Verificar conexión a la base de datos
     db = DatabaseConnection()
     connection = db.get_connection()
     if connection:
