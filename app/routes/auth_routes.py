@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 import mysql.connector
-from app.models.user_models import UserCreate, UserLogin, UserResponse, SocialAuth
+from app.models.user_models import UserCreate, UserLogin, UserResponse, SocialAuth, UserUpdate
 from app.utils.security import hash_password, verify_password
 from app.database.connection import get_db
 
@@ -63,6 +63,7 @@ async def register_user(user: UserCreate, db: mysql.connector.MySQLConnection = 
         if cursor:
             cursor.close()
 
+
 @router.post("/login")
 async def login_user(login_data: UserLogin, db: mysql.connector.MySQLConnection = Depends(get_db)):
     cursor = db.cursor(dictionary=True)
@@ -76,6 +77,79 @@ async def login_user(login_data: UserLogin, db: mysql.connector.MySQLConnection 
 
     cursor.close()
     return {"message": "Login successful", "user_id": user_data["id"]}
+
+
+@router.get("/users", response_model=list)
+async def get_all_users(db: mysql.connector.MySQLConnection = Depends(get_db)):
+    cursor = db.cursor(dictionary=True)
+
+    try:
+        cursor.callproc("GetAllUsers")
+        users = []
+        for result in cursor.stored_results():
+            users = result.fetchall()
+
+        cursor.close()
+        return users
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@router.get("/users/{user_id}", response_model=UserResponse)
+async def get_user(user_id: int, db: mysql.connector.MySQLConnection = Depends(get_db)):
+    cursor = db.cursor(dictionary=True)
+
+    cursor.callproc("GetUserById", (user_id,))
+    for result in cursor.stored_results():
+        user_data = result.fetchone()
+
+    if not user_data:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    cursor.close()
+    return UserResponse(**user_data)
+
+
+@router.put("/users/{user_id}")
+async def update_user(user_id: int, user_update: UserUpdate, db: mysql.connector.MySQLConnection = Depends(get_db)):
+    cursor = db.cursor(dictionary=True)
+
+    try:
+        # Hash password si se proporciona
+        password_hash = None
+        if user_update.password:
+            password_hash = hash_password(user_update.password)
+
+        # Convertir role a string si existe
+        role_str = None
+        if user_update.role:
+            role_str = user_update.role.value if hasattr(user_update.role, 'value') else user_update.role
+
+        cursor.callproc("UpdateUser", (
+            user_id,
+            user_update.username,
+            user_update.email,
+            user_update.full_name,
+            password_hash,
+            role_str
+        ))
+
+        db.commit()
+        cursor.close()
+        return {"message": "User updated successfully"}
+    except mysql.connector.Error as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@router.delete("/users/{user_id}")
+async def delete_user(user_id: int, db: mysql.connector.MySQLConnection = Depends(get_db)):
+    cursor = db.cursor(dictionary=True)
+
+    cursor.callproc("DeleteUser", (user_id,))
+    db.commit()
+    cursor.close()
+    return {"message": "User deleted successfully"}
 
 
 @router.post("/social-auth")
@@ -110,7 +184,7 @@ async def social_auth(social_data: SocialAuth, db: mysql.connector.MySQLConnecti
                 counter += 1
 
             cursor.callproc("CreateUser", (
-            username, social_data.email, social_data.full_name, "oauth_password", social_data.role.value))
+                username, social_data.email, social_data.full_name, "oauth_password", social_data.role.value))
             for result in cursor.stored_results():
                 user_id = result.fetchone()["user_id"]
 

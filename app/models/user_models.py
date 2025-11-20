@@ -26,17 +26,30 @@ class UserCreate(UserBase):
         return v
 
 
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    password: Optional[str] = None
+    role: Optional[UserRole] = None
+
+
 class UserLogin(BaseModel):
     username: str
     password: str
 
 
-class UserResponse(UserBase):
+class UserResponse(BaseModel):
     id: int
+    username: str
+    email: str
+    full_name: str
+    role: str
     created_at: datetime
 
     class Config:
         from_attributes = True
+
 
 class SocialAuth(BaseModel):
     provider: str

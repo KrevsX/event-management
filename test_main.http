@@ -1,148 +1,119 @@
+### ========================================
+### 🧪 TESTS COMPLETOS - EVENT MANAGEMENT API
+### ========================================
+
 ### 🏠 TEST ROOT ENDPOINT
 GET http://localhost:8000/
 Accept: application/json
 
-### 🔐 AUTHENTICATION ENDPOINTS
+### ========================================
+### 👥 USERS - CRUD COMPLETO
+### ========================================
 
-### 1. Registrar nuevo usuario
+### 1. Crear usuario (CREATE)
 POST http://localhost:8000/auth/register
 Content-Type: application/json
 
 {
-  "username": "juanperez",
-  "email": "juan.perez@example.com",
-  "full_name": "Juan Pérez",
-  "password": "password123"
+  "username": "xzsadsdad",
+  "email": "sadasdas@example.com",
+  "full_name": "Test User One",
+  "password": "password123",
+  "role": "participant"
 }
 
-### 2. Login de usuario
+### 2. Crear usuario organizador (CREATE)
+POST http://localhost:8000/auth/register
+Content-Type: application/json
+
+{
+  "username": "kev",
+  "email": "kev@example.com",
+  "full_name": "Test Organizer",
+  "password": "kev",
+  "role": "organizer"
+}
+
+### 3. Login de usuario
 POST http://localhost:8000/auth/login
 Content-Type: application/json
 
 {
-  "username": "juanperez",
-  "password": "password123"
+  "username": "kev",
+  "password": "kev"
 }
 
-### 3. Registrar segundo usuario
-POST http://localhost:8000/auth/register
+### 4. Obtener todos los usuarios (READ ALL)
+GET http://localhost:8000/auth/users
+Accept: application/json
+
+### 5. Obtener usuario por ID (READ ONE)
+GET http://localhost:8000/auth/users/1
+Accept: application/json
+
+### 6. Actualizar usuario (UPDATE)
+PUT http://localhost:8000/auth/users/1
 Content-Type: application/json
 
 {
-  "username": "mariagarcia",
-  "email": "maria.garcia@example.com",
-  "full_name": "María García",
-  "password": "password456"
+  "full_name": "Juan Pérez Actualizado",
+  "email": "juan.perez.updated@example.com"
 }
 
-### 4. Autenticación social
-POST http://localhost:8000/auth/social-auth
+### 7. Actualizar password de usuario
+PUT http://localhost:8000/auth/users/2
 Content-Type: application/json
 
 {
-  "provider": "google",
-  "provider_id": "google_123456",
-  "email": "social.user@example.com",
-  "full_name": "Social User"
+  "password": "newpassword456"
 }
 
-### 📅 EVENT ENDPOINTS - CREAR
+### 8. Eliminar usuario (DELETE - soft delete)
+DELETE http://localhost:8000/auth/users/7
 
-### 5. Crear evento 1
+### ========================================
+### 📅 EVENTS - CRUD COMPLETO
+### ========================================
+
+### 9. Crear evento (CREATE)
 POST http://localhost:8000/events/
 Content-Type: application/json
 
 {
-  "title": "Conferencia de Tecnología 2024",
-  "description": "Evento anual sobre las últimas tendencias en tecnología",
-  "date": "2024-12-15T10:00:00",
-  "location": "Centro de Convenciones",
-  "max_participants": 200,
+  "title": "Test Event - Conferencia Testing",
+  "description": "Evento de prueba para testing de API",
+  "date": "2025-12-30T10:00:00",
+  "location": "Test Location",
+  "max_participants": 100,
   "organizer_id": 1
 }
 
-### 6. Crear evento 2
-POST http://localhost:8000/events/
-Content-Type: application/json
-
-{
-  "title": "Taller de Python Avanzado",
-  "description": "Taller práctico sobre técnicas avanzadas de Python",
-  "date": "2024-11-20T14:00:00",
-  "location": "Aula Magna Universidad",
-  "max_participants": 50,
-  "organizer_id": 1
-}
-
-### 7. Crear evento pasado
-POST http://localhost:8000/events/
-Content-Type: application/json
-
-{
-  "title": "Meetup Desarrollo Web",
-  "description": "Meetup sobre desarrollo web que ya ocurrió",
-  "date": "2024-01-15T18:00:00",
-  "location": "Coworking Space",
-  "max_participants": 30,
-  "organizer_id": 1
-}
-
-### 📅 EVENT ENDPOINTS - LEER
-
-### 8. Obtener todos los eventos próximos
+### 10. Obtener todos los eventos próximos (READ)
 GET http://localhost:8000/events/upcoming
 Accept: application/json
 
-### 9. Obtener todos los eventos pasados
+### 11. Obtener todos los eventos pasados (READ)
 GET http://localhost:8000/events/past
 Accept: application/json
 
-### 10. Obtener evento específico por ID (cambia el ID según lo que devuelva la creación)
+### 12. Obtener evento por ID (READ ONE)
 GET http://localhost:8000/events/1
 Accept: application/json
 
-### 11. Obtener evento específico por ID 2
-GET http://localhost:8000/events/2
-Accept: application/json
-
-### 📅 EVENT ENDPOINTS - ACTUALIZAR
-
-### 12. Actualizar evento 1
+### 13. Actualizar evento (UPDATE)
 PUT http://localhost:8000/events/1
 Content-Type: application/json
 
 {
-  "title": "Conferencia de Tecnología 2024 - ACTUALIZADO",
-  "description": "Evento anual sobre las últimas tendencias en tecnología - ¡Nuevos ponentes!",
-  "max_participants": 250
+  "title": "Conferencia de Tecnología 2025 - ACTUALIZADO",
+  "description": "Descripción actualizada del evento",
+  "max_participants": 600
 }
 
-### 13. Actualizar evento 2
-PUT http://localhost:8000/events/2
-Content-Type: application/json
+### 14. Eliminar evento (DELETE - soft delete)
+DELETE http://localhost:8000/events/9
 
-{
-  "title": "Taller de Python Avanzado - EDICIÓN ESPECIAL",
-  "location": "Nuevo Edificio Tecnológico"
-}
-
-### 📅 EVENT ENDPOINTS - ELIMINAR
-
-### 14. Eliminar evento 2 (soft delete)
-DELETE http://localhost:8000/events/2
-
-### 📅 EVENT ENDPOINTS - ASISTENCIA
-
-### 15. Registrar asistencia usuario 1 al evento 1
-POST http://localhost:8000/events/attend
-Content-Type: application/json
-
-{
-  "user_id": 1,
-  "event_id": 1
-}
-
-### 16. Registrar asistencia usuario 2 al evento 1
+### 15. Registrar asistencia a evento
 POST http://localhost:8000/events/attend
 Content-Type: application/json
 
@@ -151,41 +122,70 @@ Content-Type: application/json
   "event_id": 1
 }
 
-### 17. Obtener asistentes del evento 1
+### 16. Obtener asistentes de un evento
 GET http://localhost:8000/events/1/attendees
 Accept: application/json
 
-### 💬 SOCIAL ENDPOINTS - COMENTARIOS
+### ========================================
+### 💬 COMMENTS - CRUD COMPLETO
+### ========================================
 
-### 18. Agregar comentario al evento 1
-POST http://localhost:8000/social/comments
-Content-Type: application/json
-
-{
-  "user_id": 1,
-  "event_id": 1,
-  "content": "Excelente evento, muy bien organizado y contenido de calidad",
-  "rating": 5
-}
-
-### 19. Agregar segundo comentario al evento 1
+### 17. Crear comentario (CREATE)
 POST http://localhost:8000/social/comments
 Content-Type: application/json
 
 {
   "user_id": 2,
   "event_id": 1,
-  "content": "Buen evento, me gustaría más tiempo para networking",
-  "rating": 4
+  "content": "Excelente evento de prueba, muy bien organizado",
+  "rating": 5
 }
 
-### 20. Obtener todos los comentarios del evento 1
+### 18. Obtener comentario por ID (READ ONE)
+GET http://localhost:8000/social/comments/1
+Accept: application/json
+
+### 19. Obtener todos los comentarios de un evento (READ)
 GET http://localhost:8000/social/events/1/comments
 Accept: application/json
 
-### 💬 SOCIAL ENDPOINTS - COMPARTIR
+### 20. Obtener todos los comentarios de un usuario (READ)
+GET http://localhost:8000/social/users/2/comments
+Accept: application/json
 
-### 21. Compartir evento por redes sociales
+### 21. Actualizar comentario (UPDATE)
+PUT http://localhost:8000/social/comments/1
+Content-Type: application/json
+
+{
+  "content": "Excelente evento de prueba, muy bien organizado - ACTUALIZADO",
+  "rating": 4
+}
+
+### 22. Actualizar solo contenido del comentario
+PUT http://localhost:8000/social/comments/2
+Content-Type: application/json
+
+{
+  "content": "Contenido actualizado sin cambiar rating"
+}
+
+### 23. Actualizar solo rating del comentario
+PUT http://localhost:8000/social/comments/3
+Content-Type: application/json
+
+{
+  "rating": 5
+}
+
+### 24. Eliminar comentario (DELETE)
+DELETE http://localhost:8000/social/comments/7
+
+### ========================================
+### 🔗 EVENT SHARES - CRUD COMPLETO
+### ========================================
+
+### 25. Crear compartición en redes sociales (CREATE)
 POST http://localhost:8000/social/share
 Content-Type: application/json
 
@@ -195,154 +195,245 @@ Content-Type: application/json
   "recipient": null
 }
 
-### 22. Compartir evento por email
+### 26. Crear compartición por email (CREATE)
 POST http://localhost:8000/social/share
 Content-Type: application/json
 
 {
   "event_id": 1,
   "share_type": "email",
-  "recipient": "amigo@example.com"
+  "recipient": "test@example.com"
 }
 
-### 📊 STATISTICS ENDPOINTS
-
-### 23. Obtener estadísticas del usuario 1
-GET http://localhost:8000/stats/user/1
+### 27. Obtener share por ID (READ ONE)
+GET http://localhost:8000/social/shares/1
 Accept: application/json
 
-### 24. Obtener estadísticas del usuario 2
+### 28. Obtener todas las comparticiones de un evento (READ)
+GET http://localhost:8000/social/events/1/shares
+Accept: application/json
+
+### 29. Obtener todas las comparticiones (READ ALL)
+GET http://localhost:8000/social/shares
+Accept: application/json
+
+### 30. Eliminar compartición (DELETE)
+DELETE http://localhost:8000/social/shares/8
+
+### ========================================
+### 📊 STATISTICS
+### ========================================
+
+### 31. Obtener estadísticas de usuario
 GET http://localhost:8000/stats/user/2
 Accept: application/json
 
-### 25. Obtener estadísticas del evento 1
+### 32. Obtener estadísticas de evento
 GET http://localhost:8000/stats/event/1
 Accept: application/json
 
-### 🔄 FLUJO COMPLETO - NUEVO USUARIO Y EVENTO
+### ========================================
+### 🔐 OAUTH (CON DATOS SEED)
+### ========================================
 
-### 26. Registrar usuario para flujo completo
+### 33. OAuth con Google
+POST http://localhost:8000/oauth/google
+Content-Type: application/json
+
+{
+  "access_token": "test_google_token_here",
+  "role": "participant",
+  "platform": "web"
+}
+
+### 34. OAuth con Facebook
+POST http://localhost:8000/oauth/facebook
+Content-Type: application/json
+
+{
+  "access_token": "test_facebook_token_here",
+  "role": "organizer"
+}
+
+### 35. Autenticación social (legacy)
+POST http://localhost:8000/auth/social-auth
+Content-Type: application/json
+
+{
+  "provider": "google",
+  "provider_id": "google_test_999",
+  "email": "socialtest@example.com",
+  "full_name": "Social Test User",
+  "role": "participant"
+}
+
+### ========================================
+### 🔄 FLUJOS COMPLETOS
+### ========================================
+
+### 36. FLUJO: Crear usuario, crear evento, registrar asistencia, comentar
+# Paso 1: Crear usuario
 POST http://localhost:8000/auth/register
 Content-Type: application/json
 
 {
-  "username": "carloslopez",
-  "email": "carlos.lopez@example.com",
-  "full_name": "Carlos López",
-  "password": "password789"
+  "username": "flowuser",
+  "email": "flow@example.com",
+  "full_name": "Flow Test User",
+  "password": "password123",
+  "role": "organizer"
 }
 
-### 27. Crear evento con nuevo usuario
+### 37. Paso 2: Crear evento con nuevo usuario (usar ID del paso 1)
 POST http://localhost:8000/events/
 Content-Type: application/json
 
 {
-  "title": "Workshop de Machine Learning",
-  "description": "Taller práctico introductorio a Machine Learning",
-  "date": "2024-12-10T09:00:00",
-  "location": "Laboratorio de Computación",
-  "max_participants": 25,
-  "organizer_id": 3
+  "title": "Evento de Flujo Completo",
+  "description": "Evento creado como parte del test de flujo",
+  "date": "2025-12-25T15:00:00",
+  "location": "Test Flow Location",
+  "max_participants": 50,
+  "organizer_id": 8
 }
 
-### 28. Usuario 1 se registra al nuevo evento
+### 38. Paso 3: Otro usuario se registra al evento
 POST http://localhost:8000/events/attend
 Content-Type: application/json
 
 {
-  "user_id": 1,
-  "event_id": 3
+  "user_id": 2,
+  "event_id": 10
 }
 
-### 29. Agregar comentario al nuevo evento
+### 39. Paso 4: Usuario comenta el evento
 POST http://localhost:8000/social/comments
 Content-Type: application/json
 
 {
-  "user_id": 1,
-  "event_id": 3,
-  "content": "Muy interesante el workshop, espero que se repita pronto",
+  "user_id": 2,
+  "event_id": 10,
+  "content": "Gran evento, excelente organización",
   "rating": 5
 }
 
-### 30. Ver estadísticas del nuevo evento
-GET http://localhost:8000/stats/event/3
+### 40. Paso 5: Compartir el evento
+POST http://localhost:8000/social/share
+Content-Type: application/json
+
+{
+  "event_id": 10,
+  "share_type": "social_media"
+}
+
+### 41. Paso 6: Ver estadísticas del evento
+GET http://localhost:8000/stats/event/10
 Accept: application/json
 
-### ❌ TEST DE ERRORES
+### ========================================
+### ❌ TESTS DE ERRORES
+### ========================================
 
-### 31. Intentar registrar usuario con username existente
+### 42. Intentar crear usuario con username duplicado
 POST http://localhost:8000/auth/register
 Content-Type: application/json
 
 {
-  "username": "juanperez",
-  "email": "otro.email@example.com",
+  "username": "admin",
+  "email": "otro@example.com",
   "full_name": "Otro Usuario",
   "password": "password123"
 }
 
-### 32. Intentar login con credenciales incorrectas
+### 43. Intentar login con credenciales incorrectas
 POST http://localhost:8000/auth/login
 Content-Type: application/json
 
 {
-  "username": "juanperez",
-  "password": "password_incorrecto"
+  "username": "admin",
+  "password": "wrongpassword"
 }
 
-### 33. Intentar obtener evento que no existe
-GET http://localhost:8000/events/9999
+### 44. Intentar obtener evento que no existe
+GET http://localhost:8000/events/99999
 Accept: application/json
 
-### 34. Intentar crear comentario con rating inválido
+### 45. Intentar obtener usuario que no existe
+GET http://localhost:8000/auth/users/99999
+Accept: application/json
+
+### 46. Intentar obtener comentario que no existe
+GET http://localhost:8000/social/comments/99999
+Accept: application/json
+
+### 47. Intentar obtener share que no existe
+GET http://localhost:8000/social/shares/99999
+Accept: application/json
+
+### 48. Intentar crear comentario con rating inválido (>5)
 POST http://localhost:8000/social/comments
 Content-Type: application/json
 
 {
-  "user_id": 1,
+  "user_id": 2,
   "event_id": 1,
   "content": "Comentario con rating inválido",
   "rating": 6
 }
 
-### 35. Verificar que el evento eliminado no aparece
+### 49. Intentar crear comentario con rating inválido (<1)
+POST http://localhost:8000/social/comments
+Content-Type: application/json
+
+{
+  "user_id": 2,
+  "event_id": 1,
+  "content": "Comentario con rating inválido",
+  "rating": 0
+}
+
+### ========================================
+### 🔍 TESTS DE VERIFICACIÓN DE SEED
+### ========================================
+
+### 50. Verificar usuarios del seed
+GET http://localhost:8000/auth/users
+Accept: application/json
+
+### 51. Verificar eventos próximos del seed
 GET http://localhost:8000/events/upcoming
 Accept: application/json
 
-### 36. Obtener estadísticas de usuario que no existe
-GET http://localhost:8000/stats/user/9999
+### 52. Verificar eventos pasados del seed
+GET http://localhost:8000/events/past
 Accept: application/json
 
-### 🔐 OAUTH REAL ENDPOINTS
+### 53. Verificar comentarios de evento del seed
+GET http://localhost:8000/social/events/6/comments
+Accept: application/json
 
-### 37. OAuth con Google (CORREGIDO)
-POST http://localhost:8000/oauth/google
-Content-Type: application/json
+### 54. Verificar shares de evento del seed
+GET http://localhost:8000/social/events/1/shares
+Accept: application/json
 
-{
-  "access_token": "your-google-access-token-here",
-  "role": "participant",
-  "platform": "web"
-}
-### 38. OAuth con Facebook
-POST http://localhost:8000/oauth/facebook
-Content-Type: application/json
+### 55. Verificar estadísticas de usuario admin
+GET http://localhost:8000/stats/user/1
+Accept: application/json
 
-{
-  "access_token": "your-facebook-access-token-here",
-  "role": "organizer"
-}
-
-### 39. Registrar usuario como organizador
-POST http://localhost:8000/auth/register
-Content-Type: application/json
-
-{
-  "username": "organizador1",
-  "email": "organizador@example.com",
-  "full_name": "Organizador Principal",
-  "password": "password123",
-  "role": "organizer"
-}
-
+### ========================================
+### 📝 NOTAS
+### ========================================
+#
+# Para ejecutar estos tests:
+# 1. Asegúrate de que la API esté corriendo: uvicorn app.main:app --reload
+# 2. Ejecuta el seed primero: python seed_database.py
+# 3. Usa un cliente HTTP como:
+#    - REST Client (VSCode extension)
+#    - Postman
+#    - Insomnia
+#    - curl
+#
+# Los IDs pueden variar dependiendo de tu base de datos.
+# Ajusta los IDs según sea necesario después de crear registros.
+#
+### ========================================
