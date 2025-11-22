@@ -2,9 +2,18 @@ from fastapi import APIRouter, HTTPException, Depends
 import mysql.connector
 from app.models.social_models import CommentCreate, CommentResponse, ShareEvent, ShareEventResponse, CommentUpdate
 from app.database.connection import get_db
+from datetime import datetime
+
+# Importar el nuevo servicio de notificaciones
+from app.services.notification_service import (
+    NotificationService,
+    NotificationReadStatus,
+    MarkAsReadRequest,
+    MarkMultipleAsReadRequest,
+    NotificationStatsResponse
+)
 
 router = APIRouter(prefix="/social", tags=["Social Interaction"])
-
 
 # ============== COMMENTS CRUD ==============
 
@@ -203,71 +212,181 @@ async def delete_event_share(share_id: int, db: mysql.connector.MySQLConnection 
     return {"message": "Share deleted successfully"}
 
 
-# ============== NOTIFICACIONES (EN TIEMPO REAL) ==============
-
 @router.get("/notifications/user/{user_id}")
 async def get_user_notifications(user_id: int, db: mysql.connector.MySQLConnection = Depends(get_db)):
     """
-    Obtiene notificaciones para un usuario:
-    - Recordatorios de eventos próximos (24 horas antes)
-    - Eventos a los que está inscrito
+    Obtiene notificaciones para un usuario con estado de lectura (open)
+    - open=1: No leída
+    - open=0: Leída
     """
     cursor = db.cursor(dictionary=True)
 
     try:
-        from datetime import datetime, timedelta
+        # Obtener notificaciones usando el servicio
+        notifications = NotificationService.get_reminder_notifications(cursor, user_id)
 
-        # Obtener eventos del usuario (asistencias)
-        cursor.execute("""
-            SELECT e.*, ea.registered_at
-            FROM event_attendance ea
-            JOIN events e ON ea.event_id = e.id
-            WHERE ea.user_id = %s AND e.is_active = TRUE AND e.date >= NOW()
-            ORDER BY e.date ASC
-        """, (user_id,))
-
-        user_events = cursor.fetchall()
-        notifications = []
-
-        for event in user_events:
-            event_date = event['date']
-            now = datetime.now()
-
-            # Calcular días hasta el evento
-            time_until_event = event_date - now
-            days_until = time_until_event.days
-            hours_until = time_until_event.total_seconds() / 3600
-
-            # Notificación de recordatorio (24 horas antes)
-            if 0 <= hours_until <= 24:
-                notifications.append({
-                    "event_id": event['id'],
-                    "event_title": event['title'],
-                    "event_date": event['date'],
-                    "event_location": event['location'],
-                    "notification_type": "reminder",
-                    "message": f"¡Recordatorio! El evento '{event['title']}' es mañana a las {event['date'].strftime('%H:%M')} en {event['location']}",
-                    "days_until_event": 0 if hours_until < 24 else 1
-                })
-
-            # Información general del evento próximo
-            elif days_until > 0:
-                notifications.append({
-                    "event_id": event['id'],
-                    "event_title": event['title'],
-                    "event_date": event['date'],
-                    "event_location": event['location'],
-                    "notification_type": "upcoming",
-                    "message": f"Tienes confirmada tu asistencia al evento '{event['title']}' el {event['date'].strftime('%d/%m/%Y')}",
-                    "days_until_event": days_until
-                })
+        # Contar no leídas
+        unread_count = sum(1 for n in notifications if n['open'] == 1)
 
         cursor.close()
         return {
             "user_id": user_id,
             "total_notifications": len(notifications),
+            "unread_count": unread_count,
+            "read_count": len(notifications) - unread_count,
             "notifications": notifications
         }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@router.post("/notifications/mark-as-read")
+async def mark_notification_as_read(request: MarkAsReadRequest):
+    """
+    Marca una notificación como leída (open=0)
+    Body: {"notification_id": "2_1_reminder_20251122"}
+    """
+    try:
+        # Extraer user_id del notification_id
+        parts = request.notification_id.split('_')
+        if len(parts) < 2:
+            raise HTTPException(status_code=400, detail="Invalid notification_id format")
+
+        user_id = int(parts[0])
+
+        # Marcar como leída
+        success = NotificationReadStatus.mark_as_read(user_id, request.notification_id)
+
+        if success:
+            return {
+                "message": "Notification marked as read",
+                "notification_id": request.notification_id,
+                "open": 0
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to mark notification as read")
+
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid notification_id format")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@router.post("/notifications/mark-multiple-as-read")
+async def mark_multiple_notifications_as_read(request: MarkMultipleAsReadRequest):
+    """
+    Marca múltiples notificaciones como leídas
+    Body: {"notification_ids": ["2_1_reminder_20251122", "2_3_upcoming_20251122"]}
+    """
+    try:
+        if not request.notification_ids:
+            raise HTTPException(status_code=400, detail="notification_ids cannot be empty")
+
+        # Extraer user_id del primer notification_id
+        parts = request.notification_ids[0].split('_')
+        if len(parts) < 2:
+            raise HTTPException(status_code=400, detail="Invalid notification_id format")
+
+        user_id = int(parts[0])
+
+        # Marcar todas como leídas
+        count = NotificationReadStatus.mark_multiple_as_read(user_id, request.notification_ids)
+
+        return {
+            "message": f"{count} notifications marked as read",
+            "notification_ids": request.notification_ids,
+            "count": count
+        }
+
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid notification_id format")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@router.post("/notifications/mark-all-as-read/{user_id}")
+async def mark_all_notifications_as_read(user_id: int, db: mysql.connector.MySQLConnection = Depends(get_db)):
+    """
+    Marca TODAS las notificaciones de un usuario como leídas
+    """
+    cursor = db.cursor(dictionary=True)
+
+    try:
+        # Obtener todas las notificaciones actuales
+        notifications = NotificationService.get_reminder_notifications(cursor, user_id)
+
+        # Extraer todos los IDs
+        notification_ids = [n['notification_id'] for n in notifications]
+
+        if not notification_ids:
+            return {
+                "message": "No notifications to mark as read",
+                "user_id": user_id,
+                "count": 0
+            }
+
+        # Marcar todas como leídas
+        count = NotificationReadStatus.mark_all_as_read(user_id, notification_ids)
+
+        cursor.close()
+        return {
+            "message": f"All {count} notifications marked as read",
+            "user_id": user_id,
+            "count": count
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@router.get("/notifications/stats/{user_id}", response_model=NotificationStatsResponse)
+async def get_notification_stats(user_id: int, db: mysql.connector.MySQLConnection = Depends(get_db)):
+    """
+    Obtiene estadísticas de notificaciones de un usuario
+    """
+    cursor = db.cursor(dictionary=True)
+
+    try:
+        # Obtener notificaciones
+        notifications = NotificationService.get_reminder_notifications(cursor, user_id)
+
+        # Calcular estadísticas
+        total = len(notifications)
+        unread = sum(1 for n in notifications if n['open'] == 1)
+        read = total - unread
+
+        cursor.close()
+        return NotificationStatsResponse(
+            user_id=user_id,
+            total_notifications=total,
+            unread_count=unread,
+            read_count=read
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@router.delete("/notifications/clear/{user_id}")
+async def clear_user_read_notifications(user_id: int):
+    """
+    Limpia el historial de notificaciones leídas de un usuario
+    Útil para resetear el estado
+    """
+    try:
+        success = NotificationReadStatus.clear_user_notifications(user_id)
+
+        if success:
+            return {
+                "message": "User notification history cleared",
+                "user_id": user_id
+            }
+        else:
+            return {
+                "message": "No notification history to clear",
+                "user_id": user_id
+            }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
@@ -282,8 +401,6 @@ async def get_event_reminders(db: mysql.connector.MySQLConnection = Depends(get_
     cursor = db.cursor(dictionary=True)
 
     try:
-        from datetime import datetime, timedelta
-
         cursor.execute("""
             SELECT e.*, u.username, u.email, u.full_name, ea.user_id
             FROM events e

@@ -1,0 +1,375 @@
+### ========================================
+### 🔔 TESTS DE NOTIFICACIONES CON ESTADO DE LECTURA
+### ========================================
+
+### ========================================
+### PARTE 1: OBTENER NOTIFICACIONES (con campo open)
+### ========================================
+
+### 1. 📱 Obtener notificaciones de usuario (todas no leídas inicialmente)
+# Debe retornar open=1 para todas las notificaciones nuevas
+GET http://localhost:8000/social/notifications/user/2
+Accept: application/json
+
+### 2. 📱 Obtener notificaciones de otro usuario
+GET http://localhost:8000/social/notifications/user/4
+Accept: application/json
+
+### ========================================
+### PARTE 2: MARCAR NOTIFICACIONES COMO LEÍDAS
+### ========================================
+
+### 3. ✅ Marcar UNA notificación como leída (open=0)
+# Primero obtén el notification_id del paso 1, ejemplo: "2_1_reminder_20251122"
+POST http://localhost:8000/social/notifications/mark-as-read
+Content-Type: application/json
+
+{
+  "notification_id": "2_1_reminder_20251122"
+}
+
+### 4. ✅ Marcar MÚLTIPLES notificaciones como leídas
+POST http://localhost:8000/social/notifications/mark-multiple-as-read
+Content-Type: application/json
+
+{
+  "notification_ids": [
+    "2_1_upcoming_20251122",
+    "2_2_upcoming_20251122",
+    "2_3_upcoming_20251122"
+  ]
+}
+
+### 5. ✅ Marcar TODAS las notificaciones de un usuario como leídas
+POST http://localhost:8000/social/notifications/mark-all-as-read/2
+
+### ========================================
+### PARTE 3: VERIFICAR ESTADO DESPUÉS DE LEER
+### ========================================
+
+### 6. 🔍 Verificar que las notificaciones marcadas ahora tienen open=0
+GET http://localhost:8000/social/notifications/user/2
+Accept: application/json
+
+### 7. 📊 Ver estadísticas de notificaciones (leídas vs no leídas)
+GET http://localhost:8000/social/notifications/stats/2
+Accept: application/json
+
+### ========================================
+### PARTE 4: TESTS DE CONTADORES
+### ========================================
+
+### 8. 📈 Obtener notificaciones - verificar unread_count
+# Debe mostrar: total_notifications, unread_count, read_count
+GET http://localhost:8000/social/notifications/user/2
+Accept: application/json
+
+### 9. 📈 Estadísticas de usuario sin notificaciones
+GET http://localhost:8000/social/notifications/stats/5
+Accept: application/json
+
+### ========================================
+### PARTE 5: FLUJO COMPLETO DE LECTURA
+### ========================================
+
+### 10. FLUJO PASO 1: Ver notificaciones (todas open=1)
+GET http://localhost:8000/social/notifications/user/4
+Accept: application/json
+
+### 11. FLUJO PASO 2: Usuario lee una notificación específica
+POST http://localhost:8000/social/notifications/mark-as-read
+Content-Type: application/json
+
+{
+  "notification_id": "4_1_upcoming_20251122"
+}
+
+### 12. FLUJO PASO 3: Verificar que esa notificación ahora es open=0
+GET http://localhost:8000/social/notifications/user/4
+Accept: application/json
+
+### 13. FLUJO PASO 4: Ver estadísticas actualizadas
+GET http://localhost:8000/social/notifications/stats/4
+Accept: application/json
+
+### 14. FLUJO PASO 5: Marcar el resto como leídas
+POST http://localhost:8000/social/notifications/mark-all-as-read/4
+
+### 15. FLUJO PASO 6: Verificar que todas son open=0
+GET http://localhost:8000/social/notifications/user/4
+Accept: application/json
+
+### ========================================
+### PARTE 6: TESTS DE RESETEO
+### ========================================
+
+### 16. 🔄 Limpiar historial de notificaciones leídas de un usuario
+# Después de esto, todas las notificaciones volverán a ser open=1
+DELETE http://localhost:8000/social/notifications/clear/2
+
+### 17. 🔍 Verificar que las notificaciones volvieron a open=1
+GET http://localhost:8000/social/notifications/user/2
+Accept: application/json
+
+### ========================================
+### PARTE 7: TESTS DE EDGE CASES
+### ========================================
+
+### 18. ❌ Intentar marcar como leída con notification_id inválido
+POST http://localhost:8000/social/notifications/mark-as-read
+Content-Type: application/json
+
+{
+  "notification_id": "invalid_format"
+}
+
+### 19. ❌ Intentar marcar múltiples con array vacío
+POST http://localhost:8000/social/notifications/mark-multiple-as-read
+Content-Type: application/json
+
+{
+  "notification_ids": []
+}
+
+### 20. 📭 Usuario sin notificaciones
+GET http://localhost:8000/social/notifications/user/99
+Accept: application/json
+
+### ========================================
+### PARTE 8: TESTS CON DATOS DEL SEED
+### ========================================
+
+### 21. 📱 Notificaciones de Juan Pérez (user_id: 2) - desde seed
+GET http://localhost:8000/social/notifications/user/2
+Accept: application/json
+
+### 22. ✅ Marcar algunas del seed como leídas
+POST http://localhost:8000/social/notifications/mark-multiple-as-read
+Content-Type: application/json
+
+{
+  "notification_ids": [
+    "2_1_upcoming_20251122",
+    "2_2_upcoming_20251122"
+  ]
+}
+
+### 23. 📊 Estadísticas después de leer algunas
+GET http://localhost:8000/social/notifications/stats/2
+Accept: application/json
+
+### 24. 📱 Ver notificaciones con mezcla de leídas y no leídas
+GET http://localhost:8000/social/notifications/user/2
+Accept: application/json
+
+### ========================================
+### PARTE 9: TESTS DE PERSISTENCIA EN SESIÓN
+### ========================================
+
+### 25. 📝 Crear usuario de prueba
+POST http://localhost:8000/auth/register
+Content-Type: application/json
+
+{
+  "username": "testnotif",
+  "email": "testnotif@example.com",
+  "full_name": "Test Notificaciones",
+  "password": "password123",
+  "role": "participant"
+}
+
+### 26. 📝 Crear evento próximo para generar notificaciones
+POST http://localhost:8000/events/
+Content-Type: application/json
+
+{
+  "title": "Evento Test Notificaciones",
+  "description": "Para probar el sistema de notificaciones",
+  "date": "2025-11-23T10:00:00",
+  "location": "Test Location",
+  "max_participants": 50,
+  "organizer_id": 1
+}
+
+### 27. 🎫 Registrar al usuario en el evento (usar IDs de pasos 25 y 26)
+POST http://localhost:8000/events/attend
+Content-Type: application/json
+
+{
+  "user_id": 9,
+  "event_id": 14
+}
+
+### 28. 📱 Ver notificaciones generadas (debe aparecer con open=1)
+GET http://localhost:8000/social/notifications/user/9
+Accept: application/json
+
+### 29. ✅ Marcar como leída
+POST http://localhost:8000/social/notifications/mark-as-read
+Content-Type: application/json
+
+{
+  "notification_id": "9_14_reminder_20251122"
+}
+
+### 30. 🔍 Verificar persistencia - debe seguir en open=0
+GET http://localhost:8000/social/notifications/user/9
+Accept: application/json
+
+### ========================================
+### PARTE 10: TESTS DE MÚLTIPLES USUARIOS
+### ========================================
+
+### 31. 👥 Registrar múltiples usuarios al mismo evento
+POST http://localhost:8000/events/attend
+Content-Type: application/json
+
+{
+  "user_id": 2,
+  "event_id": 14
+}
+
+###
+POST http://localhost:8000/events/attend
+Content-Type: application/json
+
+{
+  "user_id": 4,
+  "event_id": 14
+}
+
+### 32. 📱 Usuario 2 ve sus notificaciones
+GET http://localhost:8000/social/notifications/user/2
+Accept: application/json
+
+### 33. 📱 Usuario 4 ve sus notificaciones
+GET http://localhost:8000/social/notifications/user/4
+Accept: application/json
+
+### 34. ✅ Usuario 2 marca sus notificaciones como leídas
+POST http://localhost:8000/social/notifications/mark-all-as-read/2
+
+### 35. 🔍 Usuario 2 verifica (todas open=0)
+GET http://localhost:8000/social/notifications/user/2
+Accept: application/json
+
+### 36. 🔍 Usuario 4 verifica (sus notificaciones siguen en open=1)
+GET http://localhost:8000/social/notifications/user/4
+Accept: application/json
+
+### ========================================
+### PARTE 11: TESTS DE INTEGRACIÓN CON CAMBIOS DE EVENTOS
+### ========================================
+
+### 37. 📝 Actualizar evento que tiene asistentes
+PUT http://localhost:8000/events/14
+Content-Type: application/json
+
+{
+  "date": "2025-11-24T15:00:00",
+  "location": "Nueva Ubicación Test"
+}
+
+### 38. 📱 Ver notificaciones después del cambio (nuevas notificaciones con open=1)
+GET http://localhost:8000/social/notifications/user/9
+Accept: application/json
+
+### 39. 📊 Comparar estadísticas antes y después del cambio
+GET http://localhost:8000/social/notifications/stats/9
+Accept: application/json
+
+### ========================================
+### PARTE 12: OBTENER RECORDATORIOS DEL SISTEMA
+### ========================================
+
+### 40. 🔔 Obtener todos los eventos que necesitan recordatorio
+# Este endpoint NO usa el sistema de read/unread
+GET http://localhost:8000/social/notifications/reminders
+Accept: application/json
+
+### ========================================
+### 📝 RESUMEN DE TESTS
+### ========================================
+
+# Total de tests: 40
+
+# FUNCIONALIDADES CUBIERTAS:
+# ✅ Obtener notificaciones con campo open (0 o 1)
+# ✅ Marcar una notificación como leída
+# ✅ Marcar múltiples notificaciones como leídas
+# ✅ Marcar todas las notificaciones como leídas
+# ✅ Obtener estadísticas (total, leídas, no leídas)
+# ✅ Resetear estado de lectura de usuario
+# ✅ Persistencia en memoria durante la sesión
+# ✅ Independencia entre usuarios
+# ✅ Integración con cambios de eventos
+# ✅ Edge cases y validaciones
+
+### ========================================
+### 📊 FORMATO DE RESPUESTA ESPERADO
+### ========================================
+
+# GET /notifications/user/{user_id}
+# {
+#   "user_id": 2,
+#   "total_notifications": 5,
+#   "unread_count": 3,
+#   "read_count": 2,
+#   "notifications": [
+#     {
+#       "notification_id": "2_1_reminder_20251122",
+#       "event_id": 1,
+#       "event_title": "Conferencia de Tecnología 2025",
+#       "event_date": "2025-12-25T10:00:00",
+#       "event_location": "Centro de Convenciones",
+#       "notification_type": "reminder",
+#       "message": "¡Recordatorio! El evento...",
+#       "days_until_event": 0,
+#       "open": 1,  <-- 1 = no leída, 0 = leída
+#       "created_at": "2025-11-22T10:30:00"
+#     }
+#   ]
+# }
+
+# POST /notifications/mark-as-read
+# Response:
+# {
+#   "message": "Notification marked as read",
+#   "notification_id": "2_1_reminder_20251122",
+#   "open": 0
+# }
+
+# GET /notifications/stats/{user_id}
+# {
+#   "user_id": 2,
+#   "total_notifications": 5,
+#   "unread_count": 2,
+#   "read_count": 3
+# }
+
+### ========================================
+### 💡 NOTAS IMPORTANTES
+### ========================================
+
+# 1. El campo "open" funciona así:
+#    - open = 1 → Notificación NO leída (nueva)
+#    - open = 0 → Notificación LEÍDA
+
+# 2. El estado se mantiene en MEMORIA (no en BD)
+#    - Persiste mientras la aplicación esté corriendo
+#    - Se pierde al reiniciar el servidor (por diseño)
+
+# 3. Cada usuario tiene su propio estado independiente
+#    - Usuario A puede marcar sus notificaciones como leídas
+#    - Usuario B seguirá viendo las suyas como no leídas
+
+# 4. Los notification_id tienen el formato:
+#    "{user_id}_{event_id}_{type}_{date}"
+#    Ejemplo: "2_1_reminder_20251122"
+
+# 5. Para producción, podrías implementar:
+#    - Redis para persistencia entre reinicios
+#    - Tabla en BD (si cambias de opinión)
+#    - localStorage en el cliente (frontend)
+
+### ========================================
