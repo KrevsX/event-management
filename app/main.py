@@ -1,11 +1,27 @@
 from fastapi import FastAPI
+<<<<<<< Updated upstream
 from app.routes import auth_routes, event_routes, social_routes, stats_routes
+=======
+from fastapi.middleware.cors import CORSMiddleware
+from app.routes import auth_routes, event_routes, social_routes, stats_routes, oauth_routes  # Agregar oauth_routes
+>>>>>>> Stashed changes
 from app.database.connection import DatabaseConnection
 
 app = FastAPI(
     title="Event Management API",
     description="Sistema de gestión de eventos con autenticación e interacción social",
     version="1.0.0"
+)
+
+# ================================
+# 🚀 CORS (solución del error 405)
+# ================================
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],         
+    allow_credentials=True,
+    allow_methods=["*"],          
+    allow_headers=["*"],
 )
 
 # Incluir rutas
